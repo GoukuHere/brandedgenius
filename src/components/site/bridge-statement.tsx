@@ -2,8 +2,9 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { motion, useMotionTemplate, useScroll, useTransform, type MotionValue } from "motion/react";
+import { motion, useMotionTemplate, useTransform, type MotionValue } from "motion/react";
 import { useRef, type CSSProperties, type ReactNode } from "react";
+import { useSectionProgress } from "./use-section-progress";
 
 // The last line of the client's statement, revealed word by word with small marks inline, like the reference site's About text.
 type Token = { word: string; accent?: boolean; after?: ReactNode };
@@ -57,7 +58,7 @@ function Word({ token, i, progress }: { token: Token; i: number; progress: Motio
 
 export function BridgeStatement() {
   const runway = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: runway, offset: ["start 75%", "end 60%"] });
+  const scrollYProgress = useSectionProgress(runway, ["start 75%", "end 60%"]);
   // The lit dots follow the reading position from left to right.
   const edge = useTransform(scrollYProgress, [0, 0.8], [-25, 110]);
   const litMask = useMotionTemplate`linear-gradient(90deg, black 0%, black ${edge}%, transparent calc(${edge}% + 22%))`;

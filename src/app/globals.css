@@ -173,6 +173,9 @@
   html {
     @apply font-sans;
     color-scheme: dark;
+    /* Native scrolling: an eased JS scroll (Lenis) felt like input lag on laptop graphics. Nav links still glide. */
+    scroll-behavior: smooth;
+    scroll-padding-top: 88px;
   }
   body {
     @apply bg-background text-foreground antialiased;
@@ -282,7 +285,8 @@
 /* Moving film grain for photo backdrops. */
 .grain-drift {
   position: absolute;
-  inset: -50%;
+  /* Just larger than the screen: the drift moves at most 15%, and a 2x layer cost GPU memory for nothing. */
+  inset: -16%;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.6'/></svg>");
   opacity: 0.06;
   animation: grain-drift 8s steps(10) infinite;
@@ -293,19 +297,19 @@
     transform: translate(0, 0);
   }
   10% {
-    transform: translate(-5%, -10%);
+    transform: translate(-4%, -7%);
   }
   30% {
-    transform: translate(3%, -15%);
+    transform: translate(2%, -10%);
   }
   50% {
-    transform: translate(-15%, 5%);
+    transform: translate(-10%, 4%);
   }
   70% {
-    transform: translate(9%, 4%);
+    transform: translate(7%, 3%);
   }
   90% {
-    transform: translate(-10%, 10%);
+    transform: translate(-7%, 8%);
   }
 }
 
@@ -398,6 +402,88 @@
   }
 }
 
+/*
+  Use-case panel entrances. One data-on attribute on the panel (set by an IntersectionObserver) starts every
+  transition, so a landing costs no JavaScript. Without data-on="true" there is no transition, so leaving resets
+  instantly and the next landing plays again. --d is each element's delay.
+*/
+.case .reveal-word {
+  display: inline-block;
+  transform: translate3d(0, 110%, 0);
+}
+.case .fade-up {
+  opacity: 0;
+  transform: translate3d(0, 18px, 0);
+}
+.case .slide-in {
+  opacity: 0;
+  transform: translate3d(14px, 0, 0);
+}
+.case .slide-in-left {
+  opacity: 0;
+  transform: translate3d(-10px, 0, 0);
+}
+.case .pop {
+  opacity: 0;
+  transform: scale(0.7);
+}
+.case .draw-x {
+  transform: scaleX(0);
+  transform-origin: left;
+}
+.case .draw-y {
+  transform: scaleY(0);
+  transform-origin: top;
+}
+.case .roll {
+  opacity: 0;
+  transform: translate3d(0, 0, 0);
+}
+.case[data-on="true"] :is(.reveal-word, .fade-up, .slide-in, .slide-in-left, .draw-x, .draw-y) {
+  opacity: 1;
+  transform: none;
+  transition:
+    transform 0.9s var(--ease-out-expo) var(--d, 0s),
+    opacity 0.7s ease var(--d, 0s);
+}
+.case[data-on="true"] .pop {
+  opacity: 1;
+  transform: none;
+  transition:
+    transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) var(--d, 0s),
+    opacity 0.3s ease var(--d, 0s);
+}
+.case[data-on="true"] .roll {
+  opacity: 1;
+  transform: translate3d(0, var(--to), 0);
+  transition:
+    transform 1.6s var(--ease-out-expo) var(--d, 0s),
+    opacity 0.3s ease var(--d, 0s);
+}
+
+/* Workshop stage light: long soft beams from the top-left corner, swaying on the GPU. */
+.spot-beam {
+  position: absolute;
+  top: -12%;
+  left: -4%;
+  width: var(--w);
+  height: 175%;
+  transform-origin: 50% 0;
+  background: radial-gradient(ellipse 50% 100% at 50% 0%, rgb(150 210 255 / var(--a)), rgb(26 111 224 / calc(var(--a) * 0.4)) 45%, transparent 75%);
+  animation: beam-sway var(--dur) ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+@keyframes beam-sway {
+  from {
+    transform: rotate(calc(-1 * var(--r)));
+    opacity: 0.7;
+  }
+  to {
+    transform: rotate(calc(-1 * var(--r) - 10deg));
+    opacity: 1;
+  }
+}
+
 /* The flowing line layers drift and breathe on the GPU. */
 .flow-drift,
 .flow-drift-alt {
@@ -444,11 +530,23 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .case :is(.reveal-word, .fade-up, .slide-in, .slide-in-left, .pop, .draw-x, .draw-y) {
+    opacity: 1;
+    transform: none;
+  }
+  .case .roll {
+    opacity: 1;
+    transform: translate3d(0, var(--to), 0);
+  }
   .arc-sway,
   .kenburns,
   .grain-drift,
   .sheen-text,
   .client-tile-inner::after,
+  .spot-beam,
   .flow-drift,
   .flow-drift-alt,
   .blueprint-grid,

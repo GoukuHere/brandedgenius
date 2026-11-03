@@ -1,14 +1,14 @@
 "use client";
 
-import { GodRays } from "@paper-design/shaders-react";
 import { Pause, Play } from "lucide-react";
-import { motion, useMotionValue, useReducedMotion, useScroll, useTransform } from "motion/react";
+import { motion, useMotionValue, useTransform } from "motion/react";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BorderBeam } from "@/components/ui/border-beam";
 import { LINKS } from "@/content/home";
 import { PillLink } from "./links";
-import { SHADER_BUDGET, WhenVisible } from "./when-visible";
+import { HeroField } from "./hero-field";
+import { useSectionProgress } from "./use-section-progress";
 
 // The client's own photos, fanned on an arc behind the video like the reference site's project cards.
 const ARC = ["android", "hologram", "workshop", "hexagon", "chatbot", "team", "cubes", "desk", "tablet", "presenting"];
@@ -22,17 +22,22 @@ const easeOut = (t: number) => 1 - (1 - t) ** 3;
 
 /*
   Where the video sits before it opens. The video box is always full-screen and is only scaled down (s) and
-  trimmed top and bottom (clip, in full-size px) to read as a frame under the headline. Scaling and clipping
-  run on the GPU, where resizing the box would re-lay out the page and re-scale the 1920px video every frame.
+  trimmed top and bottom (clipTop, clipBottom, in full-size px) to read as a 16:9 frame under the headline.
+  Scaling and clipping run on the GPU, where resizing the box would re-lay out the page and re-scale the 1920px
+  video every frame. On a tall screen (phones, portrait tablets) the film fills the box by height, so the frame
+  is a narrow strip of it: the strip is centred on Roman's face (about 23% down the film), not on his collar.
 */
 function frameAt(w: number, h: number) {
   const mobile = w < 768;
   const width = mobile ? w - 40 : Math.min(w * 0.42, 760);
   const s = width / w;
-  const clip = Math.max(0, (h - (width * 9) / 16 / s) / 2);
-  const height = (h - 2 * clip) * s;
+  const band = Math.min(h, (w * 9) / 16);
+  const filmH = Math.max(h, (w * 9) / 16);
+  const faceY = (h - filmH) / 2 + filmH * 0.23;
+  const clipTop = Math.min(Math.max(0, faceY - band / 2), h - band);
+  const clipBottom = h - band - clipTop;
   const top = mobile ? Math.max(h * 0.56, 430) : Math.max(h * 0.47, 400);
-  return { left: (w - width) / 2, top, width, height, s, clip };
+  return { left: (w - width) / 2, top, width, height: band * s, s, clipTop, clipBottom };
 }
 
 export function HeroCinema() {
@@ -57,30 +62,32 @@ export function HeroCinema() {
     return () => ro.disconnect();
   }, [vw, vh]);
 
-  const { scrollYProgress: p } = useScroll({ target: section, offset: ["start start", "end end"] });
+  const p = useSectionProgress(section, ["start start", "end end"]);
 
   // 1. The headline lifts away, 2. the video opens to the full screen, 3. BRANDED and GENIUS slide in, 4. the description settles.
   const grow = useTransform(p, [0.05, 0.5], [0, 1], { ease: easeInOut });
   const frameNow = () => frameAt(vw.get(), vh.get());
   const boxScale = useTransform(() => lerp(frameNow().s, 1, grow.get()));
-  const boxClip = useTransform(() => lerp(frameNow().clip, 0, grow.get()));
+  const clipTop = useTransform(() => lerp(frameNow().clipTop, 0, grow.get()));
+  const clipBottom = useTransform(() => lerp(frameNow().clipBottom, 0, grow.get()));
   const boxX = useTransform(() => lerp(frameNow().left, 0, grow.get()));
   const boxY = useTransform(() => {
     const f = frameNow();
-    return lerp(f.top - f.clip * f.s, 0, grow.get());
+    return lerp(f.top - f.clipTop * f.s, 0, grow.get());
   });
   const boxClipPath = useTransform(() => {
     const radius = (28 * (1 - grow.get())) / boxScale.get();
-    return `inset(${boxClip.get()}px 0px ${boxClip.get()}px 0px round ${radius}px)`;
+    return `inset(${clipTop.get()}px 0px ${clipBottom.get()}px 0px round ${radius}px)`;
   });
   // An empty overlay that traces the visible frame, carrying the glow and the border beam.
-  const ringTop = useTransform(() => boxY.get() + boxClip.get() * boxScale.get());
+  const ringTop = useTransform(() => boxY.get() + clipTop.get() * boxScale.get());
   const ringWidth = useTransform(() => vw.get() * boxScale.get());
-  const ringHeight = useTransform(() => (vh.get() - 2 * boxClip.get()) * boxScale.get());
+  const ringHeight = useTransform(() => (vh.get() - clipTop.get() - clipBottom.get()) * boxScale.get());
   const ringRadius = useTransform(grow, [0, 1], [28, 0]);
   const beamOpacity = useTransform(grow, [0, 0.35], [1, 0]);
   const raysOpacity = useTransform(grow, [0, 0.55], [1, 0]);
-  const reduce = useReducedMotion();
+  // The field stops drawing once the film covers it.
+  const fieldActive = useCallback(() => raysOpacity.get() > 0.02, [raysOpacity]);
 
   const headOpacity = useTransform(p, [0, 0.13], [1, 0]);
   const headY = useTransform(p, [0, 0.2], [0, -120]);
@@ -134,33 +141,17 @@ export function HeroCinema() {
       {/* "Über uns" lands where the film is full screen with the name and the description. */}
       <div id="ueber-uns" aria-hidden className="pointer-events-none absolute top-[64%] h-px w-full" />
       <div ref={stage} className="sticky top-0 h-svh overflow-hidden">
-        {/* Light rays rising behind the frame like a stage light; they fade as the film opens */}
+        {/* A field of points rippling to a horizon behind the film, with pulses of light running out from it; it fades as the film opens */}
         <motion.div style={{ opacity: raysOpacity }} className="pointer-events-none absolute inset-0">
-          <WhenVisible className="absolute inset-0">
-            <GodRays
-              colorBack="#000000"
-              colorBloom="#1a6fe0"
-              colors={["#69bff8", "#1a6fe0", "#bfe6ff", "#004ba0"]}
-              density={0.3}
-              spotty={0.3}
-              midSize={0.2}
-              midIntensity={0.35}
-              intensity={0.5}
-              bloom={0.4}
-              offsetY={1.05}
-              speed={reduce ? 0 : 0.45}
-              {...SHADER_BUDGET}
-              maxPixelCount={960 * 540}
-              style={{ width: "100%", height: "100%" }}
-            />
-          </WhenVisible>
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,rgb(0_0_0/0.75)_0%,rgb(0_0_0/0.35)_45%,transparent_75%)]" />
+          <div className="absolute inset-x-0 top-[22%] h-[46%] bg-[radial-gradient(ellipse_55%_50%_at_50%_45%,rgb(26_111_224/0.32),rgb(0_75_160/0.12)_45%,transparent_75%)]" />
+          <div className="absolute inset-x-0 top-0 h-[42%] bg-[radial-gradient(ellipse_70%_100%_at_50%_0%,rgb(105_191_248/0.1),transparent_70%)]" />
+          <HeroField className="absolute inset-0 size-full" active={fieldActive} />
         </motion.div>
 
         {/* The arc of photo cards behind the video */}
         {desktop && frame && size && (
           <div className="pointer-events-none absolute top-0 left-0" style={{ transform: `translate(${size.w / 2}px, ${ringY}px)` }}>
-            <motion.div style={{ rotate: ringRotate, scale: ringScale, opacity: ringOpacity }}>
+            <motion.div style={{ rotate: ringRotate, scale: ringScale, opacity: ringOpacity }} className="will-change-transform">
               <div className="arc-sway">
                 {ARC.map((name, i) => (
                   <div
@@ -185,7 +176,7 @@ export function HeroCinema() {
         )}
 
         {/* Headline and the two calls to action */}
-        <motion.div style={{ opacity: headOpacity, y: headY }} className="absolute inset-x-0 top-0 z-20 px-5 pt-[112px] text-center md:pt-[128px]">
+        <motion.div style={{ opacity: headOpacity, y: headY }} className="absolute inset-x-0 top-0 z-20 px-5 pt-[112px] text-center will-change-transform md:pt-[128px]">
           <motion.h1
             initial={{ opacity: 0, y: 28, filter: "blur(12px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
@@ -253,13 +244,13 @@ export function HeroCinema() {
         <div className="pointer-events-none absolute inset-x-0 bottom-[7%] z-30 flex flex-col px-[4%] sm:flex-row sm:items-end sm:justify-between">
           <motion.span
             style={{ x: brandedX, opacity: wordsOpacity }}
-            className="block text-[clamp(60px,11.5vw,206px)] leading-[0.82] font-medium tracking-[-0.055em] text-white"
+            className="block will-change-transform text-[clamp(60px,11.5vw,206px)] leading-[0.82] font-medium tracking-[-0.055em] text-white"
           >
             BRANDED
           </motion.span>
           <motion.span
             style={{ x: geniusX, opacity: wordsOpacity }}
-            className="block self-end text-[clamp(60px,11.5vw,206px)] leading-[0.82] font-medium tracking-[-0.055em] text-white"
+            className="block self-end will-change-transform text-[clamp(60px,11.5vw,206px)] leading-[0.82] font-medium tracking-[-0.055em] text-white"
           >
             GENIUS
           </motion.span>

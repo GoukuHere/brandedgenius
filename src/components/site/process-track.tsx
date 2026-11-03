@@ -1,10 +1,11 @@
 "use client";
 
 import { FlaskConical, GraduationCap, ListFilter, Map, ScanSearch, TrendingUp, Workflow, type LucideIcon } from "lucide-react";
-import { AnimatePresence, motion, useInView, useMotionValue, useMotionValueEvent, useScroll, useTransform } from "motion/react";
-import { useEffect, useId, useRef, useState } from "react";
+import { AnimatePresence, motion, useInView, useMotionValue, useMotionValueEvent, useTransform } from "motion/react";
+import { memo, useEffect, useId, useRef, useState } from "react";
 import { PROCESS } from "@/content/home";
 import { cn } from "@/lib/utils";
+import { useSectionProgress } from "./use-section-progress";
 
 const ICONS: LucideIcon[] = [ScanSearch, ListFilter, Map, FlaskConical, Workflow, GraduationCap, TrendingUp];
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -40,7 +41,8 @@ function Blueprint() {
   );
 }
 
-function StepCard({ i, state, className }: { i: number; state: State; className?: string }) {
+// Memoised: when the active step changes, only the two cards whose state changed re-render.
+const StepCard = memo(function StepCard({ i, state, className }: { i: number; state: State; className?: string }) {
   const Icon = ICONS[i];
   const step = PROCESS[i];
   const on = state === "on";
@@ -106,7 +108,7 @@ function StepCard({ i, state, className }: { i: number; state: State; className?
       </div>
     </div>
   );
-}
+});
 
 function MobileStep({ i }: { i: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -149,7 +151,7 @@ export function ProcessTrack() {
     return () => ro.disconnect();
   }, [distance]);
 
-  const { scrollYProgress } = useScroll({ target: runway, offset: ["start start", "end end"] });
+  const scrollYProgress = useSectionProgress(runway, ["start start", "end end"]);
   const x = useTransform(() => -scrollYProgress.get() * distance.get());
 
   // The light on the rail sits under the reading position; the step nearest to it is the active one.
@@ -222,7 +224,7 @@ export function ProcessTrack() {
             </div>
 
             <div ref={win} className="relative h-full min-w-0 flex-1 overflow-hidden [mask-image:linear-gradient(90deg,transparent,black_10%,black_94%,transparent)]">
-              <motion.div ref={track} style={{ x }} className="absolute inset-y-0 left-0 flex w-max items-center gap-6 pr-[34vw] pl-20">
+              <motion.div ref={track} style={{ x }} className="absolute inset-y-0 left-0 flex w-max items-center gap-6 pr-[34vw] pl-20 will-change-transform">
                 {/* The rail with a node above every step and a light that runs along it */}
                 <div aria-hidden className="absolute inset-x-0 top-[calc(50%-268px)] h-px">
                   <div className="absolute top-0 h-px bg-white/12" style={{ left: nodes[0] ?? 0, width: (nodes[nodes.length - 1] ?? 0) - (nodes[0] ?? 0) }} />

@@ -1,17 +1,17 @@
 "use client";
 
 import { ArrowUpRight } from "lucide-react";
-import { motion, useInView, useMotionValue, useScroll, useSpring, useTransform, type MotionValue } from "motion/react";
+import { motion, useMotionValue, useSpring, useTransform, type MotionValue } from "motion/react";
 import Image from "next/image";
-import { useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from "react";
 import { BorderBeam } from "@/components/ui/border-beam";
 import { CLIENTS, LINKS, USE_CASES, type UseCase } from "@/content/home";
 import { FlowLines } from "./flow-lines";
-import { NoBreak, RollingNumber } from "./rolling-number";
+import { NoBreak, RollingNumberCss } from "./rolling-number";
+import { useSectionProgress } from "./use-section-progress";
 import { WhenVisible } from "./when-visible";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
-const enter = (on: boolean, delay: number, duration = 0.8) => (on ? { duration, delay, ease: EASE } : { duration: 0 });
 
 // One photo and one colour per use case, so the stack changes colour panel by panel like the reference's case studies.
 const LOOKS = [
@@ -98,15 +98,18 @@ function ClientGrid() {
  * Use case panels: they stack as you scroll, and each one plays its own entrance when it lands.     *
  * ---------------------------------------------------------------------------------------------- */
 
-function Tagline({ text, on }: { text: string; on: boolean }) {
+// --d sets each element's delay in the CSS entrance (see .case in globals.css).
+const delay = (s: number) => ({ "--d": `${s}s` }) as CSSProperties;
+
+function Tagline({ text }: { text: string }) {
   return (
     <h3 className="mt-6 max-w-[580px] text-[32px] leading-[1.06] font-medium tracking-[-0.04em] text-white md:text-[50px]">
       <span className="sr-only">{text}</span>
       {text.split(" ").map((word, k) => (
         <span key={k} aria-hidden className="mr-[0.24em] inline-block overflow-hidden pb-[0.1em] align-bottom">
-          <motion.span className="inline-block" initial={false} animate={{ y: on ? "0%" : "110%" }} transition={enter(on, 0.18 + k * 0.06, 0.9)}>
+          <span className="reveal-word" style={delay(0.18 + k * 0.06)}>
             {word}
-          </motion.span>
+          </span>
         </span>
       ))}
     </h3>
@@ -119,7 +122,17 @@ function CasePanel({ u, i, progress }: { u: UseCase; i: number; progress: Motion
   const scale = useTransform(progress, [i / n, 1], [1, 1 - (n - 1 - i) * 0.035]);
   const zoom = useTransform(progress, [Math.max(0, (i - 1) / n), (i + 1) / n], [1.18, 1]);
   const panel = useRef<HTMLAnchorElement>(null);
-  const on = useInView(panel, { amount: 0.5 });
+
+  // Landing plays the entrance by flipping one attribute; no React render and no JS animations.
+  useEffect(() => {
+    const el = panel.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) => {
+      el.dataset.on = String(entry.isIntersecting && entry.intersectionRatio >= 0.5);
+    }, { threshold: [0, 0.5] });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   // A pill follows the cursor, like the reference's "View Project", and flips side near the edges so it never clips.
   const [hover, setHover] = useState(false);
@@ -163,9 +176,10 @@ function CasePanel({ u, i, progress }: { u: UseCase; i: number; progress: Motion
         }}
         onMouseLeave={() => setHover(false)}
         style={{ scale, top: i * 26 }}
-        className="relative mx-auto block w-full max-w-[1320px] origin-top overflow-hidden rounded-[30px] md:h-[min(660px,80svh)]"
+        className="case relative mx-auto block w-full max-w-[1320px] origin-top overflow-hidden rounded-[30px] will-change-transform md:h-[min(660px,80svh)]"
       >
-        <motion.div style={{ scale: zoom }} className="absolute inset-0">
+        {/* will-change keeps the zoom on the GPU: without it Chrome repainted six large photos every frame (31 fps here, 60 with it). */}
+        <motion.div style={{ scale: zoom }} className="absolute inset-0 will-change-transform">
           <Image src={img} alt="" fill sizes="(min-width: 1320px) 1320px, 100vw" className="object-cover" />
         </motion.div>
         <div className="absolute inset-0" style={{ background: `linear-gradient(110deg, ${tint}f5 0%, ${tint}dc 38%, ${tint}a8 66%, ${tint}8c 100%)` }} />
@@ -173,73 +187,39 @@ function CasePanel({ u, i, progress }: { u: UseCase; i: number; progress: Motion
 
         <div className="relative z-10 grid h-full gap-10 p-6 md:p-12 lg:grid-cols-[1.08fr_0.92fr]">
           <div className="flex flex-col">
-            <motion.span
-              initial={false}
-              animate={on ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 0.7, y: 10 }}
-              transition={enter(on, 0.05, 0.6)}
-              className="w-fit origin-left rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 text-[13px] font-medium text-white backdrop-blur-md"
-            >
+            <span className="pop w-fit origin-left rounded-full border border-white/25 bg-white/15 px-3.5 py-1.5 text-[13px] font-medium text-white" style={delay(0.05)}>
               {u.name}
-            </motion.span>
-            <Tagline text={u.tagline} on={on} />
-            <motion.p
-              initial={false}
-              animate={on ? { opacity: 1, y: 0, filter: "blur(0px)" } : { opacity: 0, y: 18, filter: "blur(6px)" }}
-              transition={enter(on, 0.5)}
-              className="mt-5 max-w-[470px] text-[16px] leading-relaxed text-white/80 md:text-[17px]"
-            >
+            </span>
+            <Tagline text={u.tagline} />
+            <p className="fade-up mt-5 max-w-[470px] text-[16px] leading-relaxed text-white/80 md:text-[17px]" style={delay(0.5)}>
               {u.text}
-            </motion.p>
+            </p>
             <blockquote className="relative mt-8 hidden max-w-[460px] pl-5 text-[16px] leading-relaxed text-white/90 md:mt-auto md:block">
-              <motion.span
-                aria-hidden
-                initial={false}
-                animate={{ scaleY: on ? 1 : 0 }}
-                transition={enter(on, 0.7, 0.7)}
-                className="absolute inset-y-0 left-0 w-[2px] origin-top rounded-full bg-white/45"
-              />
-              <motion.span initial={false} animate={{ opacity: on ? 1 : 0, x: on ? 0 : -10 }} transition={enter(on, 1.05)} className="block">
+              <span aria-hidden className="draw-y absolute inset-y-0 left-0 w-[2px] rounded-full bg-white/45" style={delay(0.7)} />
+              <span className="slide-in-left block" style={delay(1.05)}>
                 „{u.quote}“<span className="mt-2 block text-[13px] text-white/60">{u.role}</span>
-              </motion.span>
+              </span>
             </blockquote>
           </div>
           <div className="flex flex-col justify-end lg:pl-6">
             {u.metrics.map((m, k) => (
               <div key={m.label} className="relative flex items-baseline justify-between gap-6 py-4">
-                <motion.span
-                  aria-hidden
-                  initial={false}
-                  animate={{ scaleX: on ? 1 : 0 }}
-                  transition={enter(on, 0.3 + k * 0.14, 0.9)}
-                  className="absolute inset-x-0 top-0 h-px origin-left bg-white/30"
-                />
-                <RollingNumber
+                <span aria-hidden className="draw-x absolute inset-x-0 top-0 h-px bg-white/30" style={delay(0.3 + k * 0.14)} />
+                <RollingNumberCss
                   value={`${m.sign}${m.value}%`}
-                  play={on}
                   delay={0.4 + k * 0.16}
                   className="text-[44px] leading-[1] font-medium tracking-[-0.05em] text-white md:text-[64px]"
                 />
-                <motion.span
-                  initial={false}
-                  animate={{ opacity: on ? 1 : 0, x: on ? 0 : 14 }}
-                  transition={enter(on, 0.75 + k * 0.16)}
-                  className="max-w-[220px] text-right text-[14px] leading-snug text-white/80"
-                >
+                <span className="slide-in max-w-[220px] text-right text-[14px] leading-snug text-white/80" style={delay(0.75 + k * 0.16)}>
                   <NoBreak text={m.label} />
-                </motion.span>
+                </span>
               </div>
             ))}
             <div className="mt-4 flex flex-wrap gap-2">
               {u.tools.map((tool, k) => (
-                <motion.span
-                  key={tool}
-                  initial={false}
-                  animate={on ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.6 }}
-                  transition={on ? { type: "spring", stiffness: 420, damping: 22, delay: 1.1 + k * 0.07 } : { duration: 0 }}
-                  className="rounded-full bg-black/25 px-3 py-1.5 text-[12.5px] text-white/85 backdrop-blur-md"
-                >
+                <span key={tool} className="pop rounded-full bg-black/30 px-3 py-1.5 text-[12.5px] text-white/85" style={delay(1.1 + k * 0.07)}>
                   {tool}
-                </motion.span>
+                </span>
               ))}
             </div>
           </div>
@@ -262,7 +242,7 @@ function CasePanel({ u, i, progress }: { u: UseCase; i: number; progress: Motion
 
 export function CaseStack() {
   const stack = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: stack, offset: ["start start", "end end"] });
+  const scrollYProgress = useSectionProgress(stack, ["start start", "end end"]);
 
   return (
     <section id="use-cases" className="relative scroll-mt-24 bg-black pt-28 md:pt-40">

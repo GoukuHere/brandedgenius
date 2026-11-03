@@ -1,13 +1,11 @@
 "use client";
 
-import { GodRays } from "@paper-design/shaders-react";
-import { AnimatePresence, motion, useMotionValue, useReducedMotion, useSpring } from "motion/react";
+import { AnimatePresence, motion, useMotionValue, useSpring } from "motion/react";
 import Image from "next/image";
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import { LINKS, WORKSHOP } from "@/content/home";
 import { cn } from "@/lib/utils";
 import { PillLink } from "./links";
-import { SHADER_BUDGET, WhenVisible } from "./when-visible";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -39,7 +37,7 @@ function Frame({ active }: { active: number }) {
     <div className="[perspective:1400px]" onPointerMove={onMove} onPointerLeave={reset}>
       <motion.div
         style={{ rotateX, rotateY }}
-        className="relative h-[min(74svh,760px)] w-full overflow-hidden rounded-[30px] border border-white/12 bg-ink-900 shadow-[0_60px_140px_-50px_rgb(26_111_224/0.55)]"
+        className="relative h-[min(74svh,760px)] w-full overflow-hidden rounded-[30px] will-change-transform border border-white/12 bg-ink-900 shadow-[0_60px_140px_-50px_rgb(26_111_224/0.55)]"
       >
         <AnimatePresence initial={false}>
           <motion.div
@@ -96,7 +94,6 @@ function Frame({ active }: { active: number }) {
 }
 
 export function WorkshopRoman() {
-  const reduce = useReducedMotion();
   const [active, setActive] = useState(0);
   const items = useRef<(HTMLLIElement | null)[]>([]);
 
@@ -116,25 +113,13 @@ export function WorkshopRoman() {
 
   return (
     <section id="ki-workshop" className="relative -mt-10 scroll-mt-24 overflow-clip bg-black pt-40 pb-28 md:pb-40">
-      {/* A spotlight sweeping down from the top left onto the stage */}
-      <WhenVisible className="pointer-events-none absolute inset-0 opacity-70">
-        <GodRays
-          colorBack="#000000"
-          colorBloom="#1a6fe0"
-          colors={["#69bff8", "#1a6fe0", "#bfe6ff", "#004ba0"]}
-          density={0.35}
-          spotty={0.25}
-          midSize={0.15}
-          midIntensity={0.3}
-          intensity={0.55}
-          bloom={0.35}
-          offsetX={-0.75}
-          offsetY={-0.95}
-          speed={reduce ? 0 : 0.5}
-          {...SHADER_BUDGET}
-          style={{ width: "100%", height: "100%" }}
-        />
-      </WhenVisible>
+      {/* Stage light: soft beams swaying down from the top left (CSS gradients moved on the GPU, no shader to compile) */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-56 -left-56 size-[760px] rounded-full bg-[radial-gradient(circle,rgb(105_191_248/0.22),rgb(26_111_224/0.08)_40%,transparent_68%)]" />
+        <span className="spot-beam" style={{ "--r": "26deg", "--w": "30vw", "--dur": "12s", "--a": "0.2" } as CSSProperties} />
+        <span className="spot-beam" style={{ "--r": "40deg", "--w": "18vw", "--dur": "15s", "--a": "0.16" } as CSSProperties} />
+        <span className="spot-beam" style={{ "--r": "14deg", "--w": "14vw", "--dur": "18s", "--a": "0.13" } as CSSProperties} />
+      </div>
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black" />
 
       <div className="relative mx-auto grid max-w-[1320px] gap-16 px-5 md:px-6 lg:grid-cols-[1fr_1fr] lg:gap-20">

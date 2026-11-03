@@ -22,7 +22,7 @@ export function StatsBand() {
 
   return (
     <section ref={section} className="relative overflow-hidden bg-[#002a66] py-28 md:py-40">
-      <WhenVisible className="absolute inset-0 opacity-90">
+      <WhenVisible className="absolute inset-0 opacity-90" order={1}>
         <NeuroNoise
           colorBack="#00225a"
           colorMid="#1a6fe0"

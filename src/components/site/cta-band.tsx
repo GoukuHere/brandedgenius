@@ -18,7 +18,7 @@ export function CtaBand() {
   const copyInView = useInView(copy, { once: true, margin: "-80px" });
   return (
     <section id="kontakt" className="relative flex min-h-[680px] scroll-mt-0 items-center overflow-hidden bg-[#020611] md:min-h-[800px]">
-      <WhenVisible className="absolute inset-0">
+      <WhenVisible className="absolute inset-0" order={2}>
         <MeshGradient
           colors={["#020611", "#004ba0", "#1a6fe0", "#69bff8", "#03163a"]}
           distortion={0.85}

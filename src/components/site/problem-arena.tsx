@@ -2,10 +2,11 @@
 
 import { Warp } from "@paper-design/shaders-react";
 import { BarChart3, FlaskConical, Map, Repeat, Unplug, Users, type LucideIcon } from "lucide-react";
-import { motion, useReducedMotion, useScroll, useSpring, useTransform, type MotionValue } from "motion/react";
+import { motion, useReducedMotion, useSpring, useTransform, type MotionValue } from "motion/react";
 import { useRef } from "react";
 import { PROBLEMS } from "@/content/home";
 import { cn } from "@/lib/utils";
+import { useSectionProgress } from "./use-section-progress";
 import { SHADER_BUDGET, WhenVisible } from "./when-visible";
 
 /*
@@ -59,11 +60,11 @@ function FlyingCard({ i, progress }: { i: number; progress: MotionValue<number> 
   const y = useTransform(progress, [start, end], [from.y, 0]);
   const opacity = useTransform(progress, [start, start + 0.22], [0, 1]);
   const scale = useTransform(progress, [start, end], [0.86, 1]);
-  const filter = useTransform(progress, [start, start + 0.22], ["blur(12px)", "blur(0px)"]);
 
+  // Transform and opacity only: an animated blur filter here re-rasterised six cards on every scroll frame.
   return (
     <div className={cn("absolute z-20 w-[300px] xl:w-[340px]", pos)}>
-      <motion.div style={{ x, y, opacity, scale, rotate: from.r, filter }} whileHover={{ rotate: 0, scale: 1.04 }} transition={{ duration: 0.3 }}>
+      <motion.div style={{ x, y, opacity, scale, rotate: from.r }} whileHover={{ rotate: 0, scale: 1.04 }} transition={{ duration: 0.3 }} className="will-change-transform">
         <ProblemCard i={i} />
       </motion.div>
     </div>
@@ -89,7 +90,7 @@ function Headline({ className }: { className?: string }) {
 function Currents() {
   const reduce = useReducedMotion();
   return (
-    <WhenVisible className="absolute inset-0 opacity-90">
+    <WhenVisible className="absolute inset-0 opacity-90" order={0}>
       <Warp
         colors={["#030407", "#24060f", "#03122b", "#05070c"]}
         proportion={0.42}
@@ -109,7 +110,7 @@ function Currents() {
 
 export function ProblemArena() {
   const runway = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: runway, offset: ["start start", "end end"] });
+  const scrollYProgress = useSectionProgress(runway, ["start start", "end end"]);
   const progress = useSpring(scrollYProgress, { stiffness: 100, damping: 24, restDelta: 0.001 });
   const headScale = useTransform(progress, [0, 0.5, 1], [1.06, 1, 0.96]);
   const headOpacity = useTransform(progress, [0, 0.15, 0.9, 1], [0.35, 1, 1, 0.9]);

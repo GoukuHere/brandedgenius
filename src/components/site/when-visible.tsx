@@ -1,7 +1,7 @@
 "use client";
 
 import { useInView } from "motion/react";
-import { useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 /**
  * Paper shaders render at 2x the screen's pixel ratio by default (about 6 million pixels for a full-screen
@@ -10,16 +10,47 @@ import { useRef, type ReactNode } from "react";
 export const SHADER_BUDGET = { minPixelRatio: 1, maxPixelCount: 1280 * 720 } as const;
 
 /**
- * Mounts its children the first time the box comes near the screen and then keeps them mounted. Paper shaders
- * pause themselves while off screen, so keeping them avoids rebuilding the WebGL program (a visible stutter)
- * every time a section scrolls back into view.
+ * Mounts its children once and keeps them. Mounting happens either when the box comes near the screen, or
+ * earlier while the browser is idle after page load (staggered by `order`). Building a WebGL program takes
+ * 50 to 100 ms, so doing it in idle time keeps that stall out of the middle of a scroll. Paper shaders pause
+ * themselves while off screen, so mounting early costs nothing per frame.
  */
-export function WhenVisible({ children, className, margin = "800px" }: { children: ReactNode; className?: string; margin?: `${number}px` }) {
+export function WhenVisible({
+  children,
+  className,
+  margin = "800px",
+  order,
+}: {
+  children: ReactNode;
+  className?: string;
+  margin?: `${number}px`;
+  /** Position in the idle-time mounting queue; leave out to mount only when near. */
+  order?: number;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const seen = useInView(ref, { margin, once: true });
+  const [warm, setWarm] = useState(false);
+
+  useEffect(() => {
+    if (order === undefined) return;
+    let idle = 0;
+    // Skip copies that are not laid out (the desktop or phone version hidden with display: none).
+    const warmUp = () => {
+      if (ref.current?.getClientRects().length) setWarm(true);
+    };
+    const timer = window.setTimeout(() => {
+      if ("requestIdleCallback" in window) idle = window.requestIdleCallback(warmUp, { timeout: 3000 });
+      else warmUp();
+    }, 1800 + order * 900);
+    return () => {
+      window.clearTimeout(timer);
+      if (idle) window.cancelIdleCallback(idle);
+    };
+  }, [order]);
+
   return (
     <div ref={ref} className={className}>
-      {seen ? children : null}
+      {seen || warm ? children : null}
     </div>
   );
 }

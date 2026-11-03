@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Instrument_Serif, Jost } from "next/font/google";
-import { SmoothScroll } from "@/components/site/smooth-scroll";
-import "lenis/dist/lenis.css";
 import "./globals.css";
 
 // next/font downloads every family at build time and serves it from this site, so no visitor request goes to Google.
@@ -19,7 +17,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="de" className={`dark ${jost.variable} ${serif.variable} ${geistMono.variable}`}>
       <body>
-        <SmoothScroll>{children}</SmoothScroll>
+        {children}
         <div aria-hidden className="grain pointer-events-none fixed inset-0 z-[60]" />
       </body>
     </html>
