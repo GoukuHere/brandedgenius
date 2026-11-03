@@ -45,9 +45,10 @@ export function Voices() {
     <section ref={section} className="relative overflow-hidden bg-black py-28 md:py-36">
       {/* The active person's photo, blurred into a glow that colours the whole section */}
       <div aria-hidden className="absolute inset-0">
+        {/* 40px pre-blurred copies stretched across the section: the browser's smooth upscaling does the blur, no filter needed. */}
         {TESTIMONIALS.map((v, i) => (
-          <div key={v.youtube} className={cn("absolute inset-0 transition-opacity duration-[1400ms] ease-out", i === active ? "opacity-100" : "opacity-0")}>
-            <Image src={v.src} alt="" fill sizes="96px" className="scale-125 object-cover opacity-55 blur-[80px] saturate-150" />
+          <div key={v.youtube} className={cn("absolute inset-0 transition-opacity duration-[1400ms] ease-out", i === active ? "opacity-55" : "opacity-0")}>
+            <Image src={`/images/testimonials/glow-${i + 1}.webp`} alt="" fill unoptimized className="scale-110 object-cover" />
           </div>
         ))}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_68%_50%,rgb(0_0_0/0.15)_0%,rgb(0_0_0/0.6)_55%,#000_100%)]" />

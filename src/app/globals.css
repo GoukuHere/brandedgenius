@@ -398,6 +398,38 @@
   }
 }
 
+/* The flowing line layers drift and breathe on the GPU. */
+.flow-drift,
+.flow-drift-alt {
+  will-change: transform, opacity;
+}
+.flow-drift {
+  animation: flow-drift 16s ease-in-out infinite alternate;
+}
+.flow-drift-alt {
+  animation: flow-drift-alt 21s ease-in-out infinite alternate;
+}
+@keyframes flow-drift {
+  from {
+    transform: translate3d(-3%, 2%, 0) scale(1.02);
+    opacity: 0.55;
+  }
+  to {
+    transform: translate3d(3%, -3%, 0) scale(1.1);
+    opacity: 1;
+  }
+}
+@keyframes flow-drift-alt {
+  from {
+    transform: translate3d(3%, -1%, 0) scale(1.08);
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(-3%, 3%, 0) scale(1.01);
+    opacity: 0.5;
+  }
+}
+
 /* The hero card arc sways a few degrees while idle, so the first screen is never still. */
 @keyframes arc-sway {
   from {
@@ -417,6 +449,8 @@
   .grain-drift,
   .sheen-text,
   .client-tile-inner::after,
+  .flow-drift,
+  .flow-drift-alt,
   .blueprint-grid,
   .dot-field,
   .dot-field-lit {

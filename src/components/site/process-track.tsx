@@ -48,10 +48,10 @@ function StepCard({ i, state, className }: { i: number; state: State; className?
   return (
     <div
       className={cn(
-        "relative flex flex-col justify-between overflow-hidden rounded-[28px] border p-8 backdrop-blur-xl transition-[border-color,background-color,box-shadow,transform] duration-700 ease-out md:p-9",
+        "relative flex flex-col justify-between overflow-hidden rounded-[28px] border p-8 transition-[border-color,background-color,box-shadow,transform] duration-700 ease-out md:p-9",
         on
-          ? "-translate-y-2 border-sky/45 bg-white/[0.08] shadow-[0_0_90px_-24px_rgb(48_194_243/0.6),inset_0_1px_0_rgb(255_255_255/0.2)]"
-          : "border-white/10 bg-white/[0.03] shadow-[inset_0_1px_0_rgb(255_255_255/0.08)]",
+          ? "-translate-y-2 border-sky/45 bg-[#0d1c3a]/[0.94] shadow-[0_0_90px_-24px_rgb(48_194_243/0.6),inset_0_1px_0_rgb(255_255_255/0.2)]"
+          : "border-white/10 bg-[#07122a]/[0.88] shadow-[inset_0_1px_0_rgb(255_255_255/0.08)]",
         className
       )}
     >

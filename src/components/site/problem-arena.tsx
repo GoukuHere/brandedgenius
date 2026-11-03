@@ -33,7 +33,7 @@ function ProblemCard({ i }: { i: number }) {
       className="group/card relative rounded-[20px] p-px shadow-[0_40px_80px_-30px_rgb(0_0_0/0.95)]"
       style={{ background: `linear-gradient(145deg, rgb(255 255 255 / 0.28), rgb(255 255 255 / 0.05) 38%, rgb(255 255 255 / 0.03) 62%, ${color}66)` }}
     >
-      <div className="relative flex gap-4 overflow-hidden rounded-[19px] bg-[#090c12]/85 p-5 backdrop-blur-xl">
+      <div className="relative flex gap-4 overflow-hidden rounded-[19px] bg-[#090c12]/[0.93] p-5">
         <div aria-hidden className="pointer-events-none absolute -top-14 -left-12 size-44 rounded-full opacity-25 blur-3xl transition-opacity duration-500 group-hover/card:opacity-45" style={{ background: color }} />
         <div aria-hidden className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
         <span

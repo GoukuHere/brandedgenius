@@ -1,9 +1,9 @@
-"use client";
-
-import { motion } from "motion/react";
-
-// Thin lines of light that drift along long curves, after Kokonut UI's Background Paths.
-function Paths({ position }: { position: number }) {
+/*
+  Thin lines of light along long curves, after Kokonut UI's Background Paths. The paths are drawn once and the
+  two layers drift and breathe with CSS transforms, which the GPU moves without repainting the lines. (Animating
+  each path's dash every frame cost a full repaint of a 1600px SVG per frame.)
+*/
+function Paths({ position, className }: { position: number; className: string }) {
   const paths = Array.from({ length: 20 }, (_, i) => ({
     id: i,
     d: `M-${380 - i * 8 * position} -${189 + i * 9}C-${380 - i * 8 * position} -${189 + i * 9} -${312 - i * 8 * position} ${216 - i * 9} ${152 - i * 8 * position} ${343 - i * 9}C${616 - i * 8 * position} ${470 - i * 9} ${684 - i * 8 * position} ${875 - i * 9} ${684 - i * 8 * position} ${875 - i * 9}`,
@@ -11,18 +11,9 @@ function Paths({ position }: { position: number }) {
   }));
 
   return (
-    <svg className="absolute inset-0 size-full" viewBox="0 0 696 316" fill="none">
+    <svg className={`absolute inset-0 size-full ${className}`} viewBox="0 0 696 316" fill="none">
       {paths.map((path) => (
-        <motion.path
-          key={path.id}
-          d={path.d}
-          stroke="currentColor"
-          strokeWidth={path.width}
-          strokeOpacity={0.16 + path.id * 0.035}
-          initial={{ pathLength: 0.3, opacity: 0.6 }}
-          animate={{ pathLength: 1, opacity: [0.3, 0.65, 0.3], pathOffset: [0, 1, 0] }}
-          transition={{ duration: 22 + (path.id % 7) * 1.6, repeat: Infinity, ease: "linear" }}
-        />
+        <path key={path.id} d={path.d} stroke="currentColor" strokeWidth={path.width} strokeOpacity={0.12 + path.id * 0.03} />
       ))}
     </svg>
   );
@@ -31,8 +22,8 @@ function Paths({ position }: { position: number }) {
 export function FlowLines({ className }: { className?: string }) {
   return (
     <div aria-hidden className={className}>
-      <Paths position={1} />
-      <Paths position={-1} />
+      <Paths position={1} className="flow-drift" />
+      <Paths position={-1} className="flow-drift-alt" />
     </div>
   );
 }

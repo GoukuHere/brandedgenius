@@ -45,18 +45,28 @@ function ClientGrid() {
     });
   };
 
-  const flip = (i: number) => ({
-    initial: { opacity: 0, rotateX: -80, y: 50 },
-    whileInView: { opacity: 1, rotateX: 0, y: 0 },
-    viewport: { once: true, margin: "-60px" },
-    transition: { duration: 1.1, delay: i * 0.09, ease: EASE },
-    style: { transformPerspective: 900, transformOrigin: "50% 0%", "--d": `${i * 0.45}s` } as CSSProperties,
+  // Flat entrance (rise, settle, un-blur) driven by the grid, so every tile is guaranteed to finish. 3D flips here
+  // put each tile on its own 3D layer, which flickered and left rows half-drawn on integrated graphics.
+  const tile = (i: number) => ({
+    variants: {
+      hidden: { opacity: 0, y: 36, scale: 0.94, filter: "blur(8px)" },
+      shown: { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", transition: { duration: 0.9, delay: i * 0.07, ease: EASE } },
+    },
+    style: { "--d": `${i * 0.45}s` } as CSSProperties,
   });
 
   return (
-    <div ref={grid} onPointerMove={track} onPointerLeave={clear} className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
+    <motion.div
+      ref={grid}
+      onPointerMove={track}
+      onPointerLeave={clear}
+      initial="hidden"
+      whileInView="shown"
+      viewport={{ once: true, amount: 0.25 }}
+      className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4"
+    >
       {CLIENTS.map((name, i) => (
-        <motion.div key={name} data-tile {...flip(i)} className="client-tile group relative h-[110px] rounded-2xl p-px md:h-[150px]">
+        <motion.div key={name} data-tile {...tile(i)} className="client-tile group relative h-[110px] rounded-2xl p-px md:h-[150px]">
           <div className="client-tile-inner relative grid h-full place-items-center overflow-hidden rounded-[15px] bg-[#0b0e14] px-4 text-center">
             <span className="relative text-[16px] font-semibold tracking-[-0.02em] text-white/70 transition-[transform,color] duration-500 ease-out group-hover:scale-[1.06] group-hover:text-white md:text-[21px]">
               {name}
@@ -69,7 +79,7 @@ function ClientGrid() {
         target="_blank"
         rel="noopener"
         data-tile
-        {...flip(CLIENTS.length)}
+        {...tile(CLIENTS.length)}
         className="client-tile group relative h-[110px] rounded-2xl p-px md:h-[150px]"
       >
         <div className="client-tile-inner relative grid h-full place-items-center overflow-hidden rounded-[15px] bg-[#071427] px-4 text-center">
@@ -80,7 +90,7 @@ function ClientGrid() {
           </span>
         </div>
       </motion.a>
-    </div>
+    </motion.div>
   );
 }
 
