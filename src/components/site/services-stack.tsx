@@ -629,18 +629,24 @@ function ServiceAnimation({ id, title, onStep }: { id: string; title: string; on
   const reduced = useSyncExternalStore(subscribeReduced, () => window.matchMedia(REDUCED).matches, () => false);
   const loop = scene.loop;
 
-  // The clock only runs while the drawing is on screen.
+  // The clock only runs while the drawing is on screen and its card is not faded out under the next one.
   useEffect(() => {
     const el = svg.current;
     if (!el || reduced) return;
+    const card = el.closest<HTMLElement>("[data-card]");
     let raf = 0;
     let last = 0;
     let elapsed = 0;
     const tick = (now: number) => {
+      raf = requestAnimationFrame(tick);
+      // Covered cards are still "on screen" for the observer, but they are invisible: skip the re-render.
+      if (card?.style.opacity === "0") {
+        last = 0;
+        return;
+      }
       if (last) elapsed += Math.min(0.1, (now - last) / 1000);
       last = now;
       setClock(elapsed % loop);
-      raf = requestAnimationFrame(tick);
     };
     const io = new IntersectionObserver(([entry]) => {
       cancelAnimationFrame(raf);
@@ -780,6 +786,7 @@ export function ServicesStack() {
       {STACK.map((s, i) => (
         <div key={s.id} data-panel className={panelClass}>
           <div
+            data-card
             className="mx-auto w-full max-w-[38rem] lg:col-start-2 lg:mx-0 lg:max-w-none"
             ref={(el) => {
               cards.current[i] = el;

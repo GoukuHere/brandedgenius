@@ -176,14 +176,20 @@ function CasePanel({ u, i, progress }: { u: UseCase; i: number; progress: Motion
         }}
         onMouseLeave={() => setHover(false)}
         style={{ scale, top: i * 26 }}
-        className="case relative mx-auto block w-full max-w-[1320px] origin-top overflow-hidden rounded-[30px] will-change-transform md:h-[min(660px,80svh)]"
+        className="case relative mx-auto block w-full max-w-[1320px] origin-top rounded-[30px] will-change-transform md:h-[min(660px,80svh)]"
       >
-        {/* will-change keeps the zoom on the GPU: without it Chrome repainted six large photos every frame (31 fps here, 60 with it). */}
-        <motion.div style={{ scale: zoom }} className="absolute inset-0 will-change-transform">
-          <Image src={img} alt="" fill sizes="(min-width: 1320px) 1320px, 100vw" className="object-cover" />
-        </motion.div>
-        <div className="absolute inset-0" style={{ background: `linear-gradient(110deg, ${tint}f5 0%, ${tint}dc 38%, ${tint}a8 66%, ${tint}8c 100%)` }} />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-black/15" />
+        {/*
+          will-change keeps the zoom on the GPU: without it Chrome repainted six large photos every frame (31 fps here,
+          60 with it). The photo gets its own rounded clip and the panel has none: a rounded clip around more than one
+          GPU layer makes Chrome draw the whole panel offscreen first, for every stacked panel on every frame.
+        */}
+        <div className="absolute inset-0 overflow-hidden rounded-[30px]">
+          <motion.div style={{ scale: zoom }} className="absolute inset-0 will-change-transform">
+            <Image src={img} alt="" fill sizes="(min-width: 1320px) 1320px, 100vw" className="object-cover" />
+          </motion.div>
+        </div>
+        <div className="absolute inset-0 rounded-[30px]" style={{ background: `linear-gradient(110deg, ${tint}f5 0%, ${tint}dc 38%, ${tint}a8 66%, ${tint}8c 100%)` }} />
+        <div className="absolute inset-0 rounded-[30px] bg-gradient-to-t from-black/60 via-black/10 to-black/15" />
 
         <div className="relative z-10 grid h-full gap-10 p-6 md:p-12 lg:grid-cols-[1.08fr_0.92fr]">
           <div className="flex flex-col">

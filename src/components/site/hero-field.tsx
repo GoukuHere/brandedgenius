@@ -5,8 +5,8 @@ import { useEffect, useRef } from "react";
 /*
   The hero background: a field of points stretching to a horizon behind the video, rippling like a data ocean,
   with pulses of light travelling outward from the film. Drawn with Canvas 2D (a few thousand small squares per
-  frame, about 1-2 ms), which is far cheaper than a full-screen WebGL shader on integrated graphics. It pauses
-  whenever it is off screen or hidden behind the opened film.
+  frame, about 1-2 ms), which is far cheaper than a full-screen WebGL shader on integrated graphics. The loop and
+  the pointer listener only exist while the field is on screen, and nothing is drawn once the film covers it.
 */
 
 const COLS = 150;
@@ -42,42 +42,34 @@ export function HeroField({ className, active }: Props) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     resize();
-    const ro = new ResizeObserver(resize);
-    ro.observe(el);
 
-    // The cursor lifts the field where it points (screen position, eased).
+    // The cursor lifts the field where it points. Pointer events only store the position; the canvas position is
+    // read once per drawn frame instead of on every event.
+    let clientX = -9999;
+    let clientY = -9999;
     let px = -9999;
     let py = -9999;
-    let targetPx = -9999;
-    let targetPy = -9999;
     const onMove = (e: PointerEvent) => {
-      const r = el.getBoundingClientRect();
-      targetPx = e.clientX - r.left;
-      targetPy = e.clientY - r.top;
-      if (px < -9000) {
-        px = targetPx;
-        py = targetPy;
-      }
+      clientX = e.clientX;
+      clientY = e.clientY;
     };
-    window.addEventListener("pointermove", onMove, { passive: true });
 
     const xs: number[][] = Array.from({ length: BUCKETS }, () => []);
     const ys: number[][] = Array.from({ length: BUCKETS }, () => []);
     const ss: number[][] = Array.from({ length: BUCKETS }, () => []);
 
-    let raf = 0;
-    let visible = true;
-    const start = performance.now();
-
-    const frame = (now: number) => {
-      raf = requestAnimationFrame(frame);
-      if (!visible || !active()) return;
-      draw((now - start) / 1000);
-    };
-
     const draw = (t: number) => {
-      px += (targetPx - px) * 0.08;
-      py += (targetPy - py) * 0.08;
+      if (clientX > -9000) {
+        const r = el.getBoundingClientRect();
+        const tx = clientX - r.left;
+        const ty = clientY - r.top;
+        if (px < -9000) {
+          px = tx;
+          py = ty;
+        }
+        px += (tx - px) * 0.08;
+        py += (ty - py) * 0.08;
+      }
       ctx.clearRect(0, 0, w, h);
       for (let b = 0; b < BUCKETS; b++) {
         xs[b].length = 0;
@@ -132,8 +124,8 @@ export function HeroField({ className, active }: Props) {
         if (!xs[b].length) continue;
         const a = (b + 0.5) / BUCKETS;
         // Faint points sit in royal blue, bright crests and pulses turn sky blue to white.
-        const lift = a * a;
-        ctx.fillStyle = `rgba(${Math.round(40 + 190 * lift)}, ${Math.round(110 + 120 * lift)}, ${Math.round(220 + 35 * lift)}, ${a})`;
+        const glow = a * a;
+        ctx.fillStyle = `rgba(${Math.round(40 + 190 * glow)}, ${Math.round(110 + 120 * glow)}, ${Math.round(220 + 35 * glow)}, ${a})`;
         const bx = xs[b];
         const by = ys[b];
         const bs = ss[b];
@@ -144,13 +136,34 @@ export function HeroField({ className, active }: Props) {
       }
     };
 
-    const io = new IntersectionObserver(([entry]) => {
-      visible = entry.isIntersecting;
+    // Resizing clears the canvas, so a still (reduced-motion) field is drawn again afterwards.
+    const ro = new ResizeObserver(() => {
+      resize();
+      if (reduce) draw(1.2);
     });
-    io.observe(el);
+    ro.observe(el);
+
+    let raf = 0;
+    const start = performance.now();
+    const frame = (now: number) => {
+      raf = requestAnimationFrame(frame);
+      if (active()) draw((now - start) / 1000);
+    };
+
+    // The loop and the pointer listener run only while the field is on screen, so other sections pay nothing.
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !raf) {
+        raf = requestAnimationFrame(frame);
+        window.addEventListener("pointermove", onMove, { passive: true });
+      } else if (!entry.isIntersecting && raf) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+        window.removeEventListener("pointermove", onMove);
+      }
+    });
 
     if (reduce) draw(1.2);
-    else raf = requestAnimationFrame(frame);
+    else io.observe(el);
 
     return () => {
       cancelAnimationFrame(raf);

@@ -405,23 +405,25 @@
 /*
   Use-case panel entrances. One data-on attribute on the panel (set by an IntersectionObserver) starts every
   transition, so a landing costs no JavaScript. Without data-on="true" there is no transition, so leaving resets
-  instantly and the next landing plays again. --d is each element's delay.
+  instantly and the next landing plays again. --d is each element's delay. Every resting state is a 2D transform:
+  a 3D one (translate3d, even with z = 0) keeps each word and digit strip on its own GPU layer, about 130 across
+  the six panels. With 2D transforms an element only gets a layer while its transition runs.
 */
 .case .reveal-word {
   display: inline-block;
-  transform: translate3d(0, 110%, 0);
+  transform: translateY(110%);
 }
 .case .fade-up {
   opacity: 0;
-  transform: translate3d(0, 18px, 0);
+  transform: translateY(18px);
 }
 .case .slide-in {
   opacity: 0;
-  transform: translate3d(14px, 0, 0);
+  transform: translateX(14px);
 }
 .case .slide-in-left {
   opacity: 0;
-  transform: translate3d(-10px, 0, 0);
+  transform: translateX(-10px);
 }
 .case .pop {
   opacity: 0;
@@ -437,7 +439,7 @@
 }
 .case .roll {
   opacity: 0;
-  transform: translate3d(0, 0, 0);
+  transform: translateY(0);
 }
 .case[data-on="true"] :is(.reveal-word, .fade-up, .slide-in, .slide-in-left, .draw-x, .draw-y) {
   opacity: 1;
@@ -455,13 +457,17 @@
 }
 .case[data-on="true"] .roll {
   opacity: 1;
-  transform: translate3d(0, var(--to), 0);
+  transform: translateY(var(--to));
   transition:
     transform 1.6s var(--ease-out-expo) var(--d, 0s),
     opacity 0.3s ease var(--d, 0s);
 }
 
-/* Workshop stage light: long soft beams from the top-left corner, swaying on the GPU. */
+/*
+  Workshop stage light: long soft beams from the top-left corner, swaying on the GPU. They only sway while the
+  workshop is on screen (data-on on the wrapper, set by an IntersectionObserver); an infinite CSS animation would
+  otherwise keep the compositor ticking on every other section too.
+*/
 .spot-beam {
   position: absolute;
   top: -12%;
@@ -471,7 +477,10 @@
   transform-origin: 50% 0;
   background: radial-gradient(ellipse 50% 100% at 50% 0%, rgb(150 210 255 / var(--a)), rgb(26 111 224 / calc(var(--a) * 0.4)) 45%, transparent 75%);
   animation: beam-sway var(--dur) ease-in-out infinite alternate;
-  will-change: transform, opacity;
+  animation-play-state: paused;
+}
+[data-on="true"] > .spot-beam {
+  animation-play-state: running;
 }
 @keyframes beam-sway {
   from {
@@ -539,7 +548,7 @@
   }
   .case .roll {
     opacity: 1;
-    transform: translate3d(0, var(--to), 0);
+    transform: translateY(var(--to));
   }
   .arc-sway,
   .kenburns,

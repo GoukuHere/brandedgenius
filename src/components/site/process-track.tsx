@@ -224,7 +224,7 @@ export function ProcessTrack() {
             </div>
 
             <div ref={win} className="relative h-full min-w-0 flex-1 overflow-hidden [mask-image:linear-gradient(90deg,transparent,black_10%,black_94%,transparent)]">
-              <motion.div ref={track} style={{ x }} className="absolute inset-y-0 left-0 flex w-max items-center gap-6 pr-[34vw] pl-20 will-change-transform">
+              <motion.div ref={track} style={{ x }} className="absolute inset-y-0 left-0 flex w-max items-center gap-6 pr-[34vw] pl-20">
                 {/* The rail with a node above every step and a light that runs along it */}
                 <div aria-hidden className="absolute inset-x-0 top-[calc(50%-268px)] h-px">
                   <div className="absolute top-0 h-px bg-white/12" style={{ left: nodes[0] ?? 0, width: (nodes[nodes.length - 1] ?? 0) - (nodes[0] ?? 0) }} />

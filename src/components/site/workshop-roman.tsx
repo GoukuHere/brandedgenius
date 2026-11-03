@@ -96,6 +96,18 @@ function Frame({ active }: { active: number }) {
 export function WorkshopRoman() {
   const [active, setActive] = useState(0);
   const items = useRef<(HTMLLIElement | null)[]>([]);
+  const beams = useRef<HTMLDivElement>(null);
+
+  // The stage beams only sway while the section is on screen (see .spot-beam in globals.css).
+  useEffect(() => {
+    const el = beams.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) => {
+      el.dataset.on = String(entry.isIntersecting);
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   // A format becomes active when it crosses the middle of the screen.
   useEffect(() => {
@@ -114,7 +126,7 @@ export function WorkshopRoman() {
   return (
     <section id="ki-workshop" className="relative -mt-10 scroll-mt-24 overflow-clip bg-black pt-40 pb-28 md:pb-40">
       {/* Stage light: soft beams swaying down from the top left (CSS gradients moved on the GPU, no shader to compile) */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div ref={beams} aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-56 -left-56 size-[760px] rounded-full bg-[radial-gradient(circle,rgb(105_191_248/0.22),rgb(26_111_224/0.08)_40%,transparent_68%)]" />
         <span className="spot-beam" style={{ "--r": "26deg", "--w": "30vw", "--dur": "12s", "--a": "0.2" } as CSSProperties} />
         <span className="spot-beam" style={{ "--r": "40deg", "--w": "18vw", "--dur": "15s", "--a": "0.16" } as CSSProperties} />

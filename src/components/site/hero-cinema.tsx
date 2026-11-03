@@ -25,7 +25,7 @@ const easeOut = (t: number) => 1 - (1 - t) ** 3;
   trimmed top and bottom (clipTop, clipBottom, in full-size px) to read as a 16:9 frame under the headline.
   Scaling and clipping run on the GPU, where resizing the box would re-lay out the page and re-scale the 1920px
   video every frame. On a tall screen (phones, portrait tablets) the film fills the box by height, so the frame
-  is a narrow strip of it: the strip is centred on Roman's face (about 23% down the film), not on his collar.
+  is a narrow strip of it: the strip is centred on Roman's face (about 23% down the film), not on the collar.
 */
 function frameAt(w: number, h: number) {
   const mobile = w < 768;

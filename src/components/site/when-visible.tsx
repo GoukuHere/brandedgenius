@@ -11,9 +11,10 @@ export const SHADER_BUDGET = { minPixelRatio: 1, maxPixelCount: 1280 * 720 } as 
 
 /**
  * Mounts its children once and keeps them. Mounting happens either when the box comes near the screen, or
- * earlier while the browser is idle after page load (staggered by `order`). Building a WebGL program takes
- * 50 to 100 ms, so doing it in idle time keeps that stall out of the middle of a scroll. Paper shaders pause
- * themselves while off screen, so mounting early costs nothing per frame.
+ * earlier in a quiet moment after page load (staggered by `order`). Building a WebGL program takes 50 to 100 ms
+ * and blocks the page, so the early mount waits until nothing has scrolled for 600 ms and the browser reports
+ * real idle time; it never forces itself into the middle of a scroll. Paper shaders pause themselves while off
+ * screen, so mounting early costs nothing per frame.
  */
 export function WhenVisible({
   children,
@@ -32,19 +33,31 @@ export function WhenVisible({
   const [warm, setWarm] = useState(false);
 
   useEffect(() => {
-    if (order === undefined) return;
+    // Browsers without requestIdleCallback (Safari) simply mount on approach.
+    if (order === undefined || !("requestIdleCallback" in window)) return;
     let idle = 0;
-    // Skip copies that are not laid out (the desktop or phone version hidden with display: none).
-    const warmUp = () => {
+    let lastScroll = 0;
+    const onScroll = () => {
+      lastScroll = performance.now();
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    const warmUp = (deadline: IdleDeadline) => {
+      if (performance.now() - lastScroll < 600 || deadline.timeRemaining() < 30) {
+        idle = window.requestIdleCallback(warmUp);
+        return;
+      }
+      idle = 0;
+      window.removeEventListener("scroll", onScroll);
+      // Skip copies that are not laid out (the desktop or phone version hidden with display: none).
       if (ref.current?.getClientRects().length) setWarm(true);
     };
     const timer = window.setTimeout(() => {
-      if ("requestIdleCallback" in window) idle = window.requestIdleCallback(warmUp, { timeout: 3000 });
-      else warmUp();
+      idle = window.requestIdleCallback(warmUp);
     }, 1800 + order * 900);
     return () => {
       window.clearTimeout(timer);
       if (idle) window.cancelIdleCallback(idle);
+      window.removeEventListener("scroll", onScroll);
     };
   }, [order]);
 
